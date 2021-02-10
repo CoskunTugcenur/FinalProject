@@ -1,4 +1,6 @@
 ﻿using Business.Abstract;
+using Business.Constants;
+using Core.Utilities.Results;
 using DataAccess.Abstract;
 using DataAccess.Concrete.InMemory;
 using Entities.Concrete;
@@ -18,26 +20,47 @@ namespace Business.Concrete
             _IProduct = ıProduct;
         }
 
+        public IResult Add(Product product)
+        {
+            if (product.ProductName.Length<2)
+            {
+                return new ErrorResult(Messages.ProductNameInvalid);
+            }
+            _IProduct.Add(product);
 
-        public List<Product> GetAll()
+            return new SuccessResult(Messages.ProductAddedMessage);
+        }
+
+        public IDataResult<List<Product>> GetAll()
         {
             //iş kodları
-            return _IProduct.GetAll();
+            return new SuccessDataResult<List<Product>>(_IProduct.GetAll(),Messages.ProductListedMessage);
         }
 
-        public List<Product> GetAllProductId(int id)
+        public IDataResult<List<Product>> GetAllProductId(int id)
         {
-            return _IProduct.GetAll(p => p.CategoryId == id);
+            return new SuccessDataResult<List<Product>>(_IProduct.GetAll(p => p.CategoryId == id),Messages.ProductListedMessage);
         }
 
-        public List<Product> GetAllUnitPrice(decimal min, decimal max)
+        public IDataResult<List<Product>> GetAllUnitPrice(decimal min, decimal max)
         {
-            return _IProduct.GetAll(p => p.UnitPrice >= min && p.UnitPrice <= max);
+            if (DateTime.Now.Hour ==22)
+            {
+                return new ErrorDataResult<List<Product>>(Messages.MaintenanceTime);
+            }
+            return new  SuccessDataResult<List<Product>>(
+                _IProduct.GetAll(p => p.UnitPrice >= min && p.UnitPrice <= max)
+                , Messages.ProductListedMessage);
         }
 
-        public List<ProductDetailDto> GetProductDetails()
+        public IDataResult<Product> GetById(int productId)
         {
-            return _IProduct.GetProductDetails();
+            return new DataResult<Product>(_IProduct.Get(p => p.ProductId == productId),true,Messages.ProductListedMessage);
+        }
+
+        public IDataResult<List<ProductDetailDto>> GetProductDetails()
+        {
+            return new SuccessDataResult<List<ProductDetailDto>>(_IProduct.GetProductDetails(),Messages.ProductListedMessage);
         }
     }
 }
