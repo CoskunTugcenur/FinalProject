@@ -1,4 +1,6 @@
 ﻿using Business.Abstract;
+using Business.Constants;
+using Core.Utilities.Results;
 using DataAccess.Abstract;
 using Entities.Concrete;
 using System;
@@ -16,9 +18,12 @@ namespace Business.Concrete
             _ICategoryDal = ıCategoryDal;
         }
 
-        public List<Category> GetAll()
+
+        public IDataResult<List<Category>> GetAll()
         {
-            return _ICategoryDal.GetAll();
+
+            return new SuccessDataResult<List<Category>>(_ICategoryDal.GetAll(), Messages.CategoryListedMessage);
+
         }
 
         public Category GetById(int categoryId)
