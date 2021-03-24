@@ -1,10 +1,13 @@
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-
+using Business.Abstract;
+using Business.Concrete;
+using Core.DependencyResolvers;
 using Core.Extensions;
 using Core.Utilities.IoC;
-
+using Core.Utilities.Security.Encryption;
+using Core.Utilities.Security.JWT;
+using DataAccess.Abstract;
+using DataAccess.Concrete.EntityFramework;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -16,9 +19,9 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 using System;
-using Core.Utilities.Security.JWT;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Core.Utilities.Security.Encryption;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace WebAPI
 {
@@ -34,7 +37,15 @@ namespace WebAPI
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            //AOP
+            //Autofac, Ninject,CastleWindsor, StructureMap, LightInject, DryInject -->IoC Container
+            //AOP
+            //Postsharp
             services.AddControllers();
+            //services.AddSingleton<IProductService,ProductManager>();
+            //services.AddSingleton<IProductDal, EfProductDal>();
+
+            services.AddCors();
 
             var tokenOptions = Configuration.GetSection("TokenOptions").Get<TokenOptions>();
 
@@ -53,8 +64,10 @@ namespace WebAPI
                     };
                 });
 
-            services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
-            ServiceTool.Create(services);
+            services.AddDependencyResolvers(new ICoreModule[] {
+               new CoreModule()
+            });
+
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -64,18 +77,22 @@ namespace WebAPI
             {
                 app.UseDeveloperExceptionPage();
             }
+            app.ConfigureCustomExceptionMiddleware(); 
 
+            app.UseCors(builder=>builder.WithOrigins("http://localhost:4200").AllowAnyHeader());
             app.UseHttpsRedirection();
 
             app.UseRouting();
 
             app.UseAuthentication();
+
             app.UseAuthorization();
 
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllers();
             });
+            
         }
     }
 }

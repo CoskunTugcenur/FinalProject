@@ -10,8 +10,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 namespace Business.BusinessAspects.Autofac
 {
-
-    //JWT
     public class SecuredOperation : MethodInterception
     {
         private string[] _roles;

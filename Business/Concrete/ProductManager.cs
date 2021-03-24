@@ -15,6 +15,8 @@ using System.Text;
 using System.Linq;
 using Core.Utilities.Business;
 using Business.BusinessAspects.Autofac;
+using Core.Aspects.Autofac.Caching;
+using Core.Aspects.Autofac.Transaction;
 
 namespace Business.Concrete
 {
@@ -31,6 +33,8 @@ namespace Business.Concrete
 
         [SecuredOperation("product.add,admin")]
         [ValidationAspect(typeof(ProductValidator))]
+        [CacheRemoveAspect("IProductService.Get")]
+
         public IResult Add(Product product)
         {
 
@@ -49,22 +53,23 @@ namespace Business.Concrete
 
         }
 
+        [CacheAspect]
         public IDataResult<List<Product>> GetAll()
         {
-            if (DateTime.Now.Hour == 1)
-            {
-                return new ErrorDataResult<List<Product>>(Messages.MaintenanceTime);
-            }
+            //if (DateTime.Now.Hour == 1)
+            //{
+            //    return new ErrorDataResult<List<Product>>(Messages.MaintenanceTime);
+            //}
             //iş kodları
             return new SuccessDataResult<List<Product>>(_IProduct.GetAll(), Messages.ProductListedMessage);
         }
 
-        public IDataResult<List<Product>> GetAllProductId(int id)
+        public IDataResult<List<Product>> GetByProductId(int id)
         {
             return new SuccessDataResult<List<Product>>(_IProduct.GetAll(p => p.CategoryId == id), Messages.ProductListedMessage);
         }
 
-        public IDataResult<List<Product>> GetAllUnitPrice(decimal min, decimal max)
+        public IDataResult<List<Product>> GetByUnitPrice(decimal min, decimal max)
         {
             if (DateTime.Now.Hour == 22)
             {
@@ -75,6 +80,7 @@ namespace Business.Concrete
                 , Messages.ProductListedMessage);
         }
 
+        [CacheAspect]
         public IDataResult<Product> GetById(int productId)
         {
             return new DataResult<Product>(_IProduct.Get(p => p.ProductId == productId), true, Messages.ProductListedMessage);
@@ -86,12 +92,17 @@ namespace Business.Concrete
         }
 
         [ValidationAspect(typeof(ProductValidator))]
-
+        [CacheRemoveAspect("IProductService.Get")]
         public IResult Update(Product product)
         {
 
-            return null;
+            var result = _IProduct.GetAll(p => p.CategoryId == product.CategoryId);
+            if (result.Count>10)
+            {
+                return new ErrorResult();
+            }
 
+            return new SuccessResult();
         }
 
 
@@ -121,11 +132,31 @@ namespace Business.Concrete
         private IResult CheckIfCategoryLimitExceded()
         {
             var result = _categoryService.GetAll();
-            if (result.Data.Count() > 15)
+            if (result.Data.Count > 15)
             {
                 return new ErrorResult(Messages.CategoryLimitExceded);
             }
             return new SuccessResult();
+        }
+
+        [TransactionScopeAspect]
+        public IResult AddTransactionalTest(Product product)
+        {
+            Add(product);
+            if (product.UnitPrice<10)
+            {
+                throw new Exception("");
+            }
+
+            Add(product);
+
+            return null;
+        }
+
+        public IDataResult<List<Product>> GetAllByCategoryId(int categoryId)
+        {
+            var result=_IProduct.GetAll(p => p.CategoryId == categoryId);
+            return new SuccessDataResult<List<Product>>(result);
         }
     }
 }
